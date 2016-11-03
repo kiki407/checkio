@@ -25,7 +25,7 @@ def raytrace(A, B):
 
     count = 0
     maxiloop = 10
-    while (x,y) != grid_B:
+    while (x, y) != grid_B:
         # NB if tIx == tIy we increment both x and y
         print("===============")
         print("x = {}".format(x))
@@ -39,7 +39,6 @@ def raytrace(A, B):
         (movx, movy) = (tIx <= tIy, tIy <= tIx)
         print("movx = {}".format(movx))
         print("movy = {}".format(movy))
-
 
         if movx:
             # intersection is at (x + sx, yA + tIx / dx^2)
