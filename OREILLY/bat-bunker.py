@@ -1,47 +1,67 @@
+from math import floor, ceil
 import math
 from collections import defaultdict
-from math import floor
 
 
-def sign(n):
-    return (n > 0) - (n < 0)
+def find_intercepts(A, B):
+    (xA, yA) = (A[0] + .5, A[1] + .5)
+    (xB, yB) = (B[0] + .5, B[1] + .5)
+    m = (yA - yB)/(xA - xB)
 
+    # move A towards B
+    if xA > xB:
+        allX = [i for i in range(
+            int(floor(xB)),
+            int(ceil(xA)))][::-1]
+    elif xB > xA:
+        allX = [i for i in range(
+            int(floor(xA)),
+            int(ceil(xB)))]
+    else:
+        allX = []
 
-def raytrace(A, B):
-    """ Return all cells of the unit grid crossed by the line segment between
-        A and B.
-    """
+    if yA > yB:
+        allY = [i for i in range(
+            int(floor(yB)),
+            int(ceil(yA)))][::-1]
+    elif yB > yA:
+        allY = [i for i in range(
+            int(floor(yA)),
+            int(ceil(yB)))]
+    else:
+        allY = []
 
-    (xA, yA) = A
-    (xB, yB) = B
-    (dx, dy) = (xB - xA, yB - yA)
-    (sx, sy) = (sign(dx), sign(dy))
+    intersectY = [(x, m * (x-xA)+yA) for x in allX]
+    intersectX = [((y-yA)/m+xA, y) for y in allY]
 
-    grid_A = (floor(A[0]), floor(A[1]))
-    grid_B = (floor(B[0]), floor(B[1]))
-    (x, y) = grid_A
-    traversed = [grid_A]
+    def lims(x, y):
+        return (
+            x <= max(allX) and
+            x >= min(allX) and
+            y <= max(allY) and
+            y >= min(allY))
 
-    tIx = dy * (x + sx - xA) if dx != 0 else float("+inf")
-    tIy = dx * (y + sy - yA) if dy != 0 else float("+inf")
+    allintercts = []
 
-    while (x,y) != grid_B:
-        # NB if tIx == tIy we increment both x and y
-        (movx, movy) = (tIx <= tIy, tIy <= tIx)
+    def add_to_i(x, y):
+        tadd = (int(floor(x)), int(floor(y)))
+        if tadd[0] in allX and tadd[1] in allY:
+            if tadd not in allintercts and tadd != A and tadd != B:
+                allintercts.append(tadd)
 
-        if movx:
-            # intersection is at (x + sx, yA + tIx / dx^2)
-            x += sx
-            tIx = dy * (x + sx - xA)
+    for i in intersectX:
+        add_to_i(*i)
+        add_to_i(i[0], i[1] - 1)
+        if i[0] % 1 == 0:
+            add_to_i(i[0]-1, i[1] - 1)
 
-        if movy:
-            # intersection is at (xA + tIy / dy^2, y + sy)
-            y += sy
-            tIy = dx * (y + sy - yA)
+    for i in intersectY:
+        add_to_i(*i)
+        add_to_i(i[0] - 1, i[1])
+        if i[1] % 1 == 0:
+            add_to_i(i[0]-1, i[1] - 1)
 
-        traversed.append((x, y))
-
-    return traversed
+    return allintercts
 
 
 class Graph:
@@ -65,7 +85,7 @@ def dijsktra(graph, initial):
 
     nodes = set(graph.nodes)
 
-    while nodes: 
+    while nodes:
         min_node = None
         for node in nodes:
             if node in visited:
@@ -137,10 +157,14 @@ def checkio(bunker):
                 return abs(bat1[0] - bat2[0])
 
         else:
-            print("bat1 = {}".format(bat1))
-            print("bat2 = {}".format(bat2))
-            rt = raytrace(bat1, bat2)
-            print("rt = {}".format(rt))
+            wotw = find_intercepts(bat1, bat2)
+            for it in wotw:
+                srt_it = '{}{}'.format(*it)
+                if srt_it in wall_list:
+                    return False
+            return math.sqrt(
+                abs(bat1[1] - bat2[1])**2 +
+                abs(bat1[0] - bat2[0])**2)
 
     def can_reach2(sbat1, sbat2, wall_list):
         bat1 = [int(i) for i in sbat1]
@@ -158,7 +182,7 @@ def checkio(bunker):
             for col in cols:
                 if '{}{}'.format(li,col) not in wall_list:
                     graphy.add_node('{}{}'.format(li,col))
-        
+
         for n1 in graphy.nodes:
             for n2 in graphy.nodes:
                 # print("n1 = {}".format(n1))
@@ -172,14 +196,6 @@ def checkio(bunker):
                 if int(n1[0]) == int(n2[0]) and int(n1[1]) - 1 == int(n2[1]):
                     graphy.add_edge(n1, n2, 1)
 
-        # print("=")
-        # print("sbat1 = {}".format(sbat1))
-        # print("sbat2 = {}".format(sbat2))
-        # print("wall_list = {}".format(wall_list))
-        # print("lines = {}".format(lines))
-        # print("cols = {}".format(cols))
-        # print("graphy.edges = {}".format(graphy.edges))
-
         if len(graphy.edges) > 0:
             res = False
             try:
@@ -190,7 +206,7 @@ def checkio(bunker):
                 print("dij[1].values() = {}".format(dij[1].values()))
             except:
                 pass
-            
+
             try:
                 dij = dijsktra(graphy, sbat2)
                 res = dij[0][sbat1]
@@ -212,7 +228,6 @@ def checkio(bunker):
                     abs(bat1[0] - bat2[0])**2)
         else:
             return False
-
 
     def can_reach(sbat1, sbat2, wall_list):
         bat1 = [int(i) for i in sbat1]
@@ -263,13 +278,13 @@ def checkio(bunker):
             for pos2, bat2 in batlist.iteritems():
                 if pos1 != pos2:
                     g.add_node(bat1)
-                    res2 = can_reach(pos1, pos2, wall_list)
-                    res = can_reach2(pos1, pos2, wall_list)
-                    res3 = can_reach3(pos1, pos2, wall_list)
+                    # res2 = can_reach(pos1, pos2, wall_list)
+                    # res = can_reach2(pos1, pos2, wall_list)
+                    res = can_reach3(pos1, pos2, wall_list)
                     print("+")
                     print("|")
                     print("res = {}".format(res))
-                    print("res2 = {}".format(res2))
+                    # print("res2 = {}".format(res2))
                     print("|")
                     print("+")
                     if res:
@@ -285,6 +300,7 @@ def checkio(bunker):
     print("|")
     print("|")
     print("bats = {}".format(bats))
+    print("walls = {}".format(walls))
     print("graph1.edges = {}".format(graph1.edges))
     print("res = {}".format(res))
     print("dj = {}".format(dj))
